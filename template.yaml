@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  message-processing-system
+  AWS SAM Template for Serverless Message Processing System with API Gateway, DynamoDB, and S3
+
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment stage (dev, staging, prod)
+
+Globals:
+  Function:
+    Timeout: 5
+    Runtime: python3.13
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        DDB_TABLE: !Ref MessagesTable
+        BUCKET_NAME: !Ref MessagesBucket
+        STAGE_NAME: !Ref StageName
+    Tracing: Active
+    LoggingConfig:
+      LogFormat: JSON
+  Api:
+    TracingEnabled: true
+
+Resources:
+
+  # -----------------------------
+  # S3 Bucket for Raw Messages
+  # -----------------------------
+  MessagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-${StageName}-messages'
+      VersioningConfiguration:
+        Status: Enabled
+
+  # -----------------------------
+  # DynamoDB Table for Metadata
+  # -----------------------------
+  MessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-${StageName}-messages'
+      AttributeDefinitions:
+        - AttributeName: company_id
+          AttributeType: S
+        - AttributeName: message_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: company_id
+          KeyType: HASH
+        - AttributeName: message_id
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  # -----------------------------
+  # API Gateway for Message API
+  # -----------------------------
+  MessageApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub 'MessageApi-${StageName}'
+      StageName: !Ref StageName
+      Cors:
+        AllowMethods: "'OPTIONS,GET,POST'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  # -----------------------------
+  # Lambda for POST /messages
+  # -----------------------------
+  PostMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handlers.post_message.lambda_handler
+      Events:
+        PostMessage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MessageApi
+            Path: /messages
+            Method: post
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref MessagesBucket
+        - DynamoDBWritePolicy:
+            TableName: !Ref MessagesTable
+
+  # -----------------------------
+  # Lambda for GET /messages/{message_id}
+  # -----------------------------
+  GetMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handlers.get_message.lambda_handler
+      Events:
+        GetMessage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MessageApi
+            Path: /messages/{message_id}
+            Method: get
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref MessagesBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref MessagesTable
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${MessageApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+  MessagesTableName:
+    Description: Name of DynamoDB table storing messages
+    Value: !Ref MessagesTable
+  MessagesBucketName:
+    Description: Name of S3 bucket storing raw message files
+    Value: !Ref MessagesBucket
+  PostMessageFunctionArn:
+    Description: ARN of the PostMessage Lambda function
+    Value: !GetAtt PostMessageFunction.Arn
+  GetMessageFunctionArn:
+    Description: ARN of the GetMessage Lambda function
+    Value: !GetAtt GetMessageFunction.Arn
