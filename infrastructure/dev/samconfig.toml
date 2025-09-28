@@ -1,0 +1,8 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "message-processing-dev"
+region = "ap-south-1"
+s3_bucket = "your-sam-artifacts-dev"
+s3_prefix = "message-processing"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "StageName=dev"

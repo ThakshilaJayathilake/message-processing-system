@@ -62,22 +62,21 @@ Resources:
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
 
-  # -----------------------------
-  # API Gateway for Message API
-  # -----------------------------
   MessageApi:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub 'MessageApi-${StageName}'
       StageName: !Ref StageName
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: api/api.yml
       Cors:
         AllowMethods: "'OPTIONS,GET,POST'"
         AllowHeaders: "'Content-Type,Authorization'"
         AllowOrigin: "'*'"
 
-  # -----------------------------
-  # Lambda for POST /messages
-  # -----------------------------
   PostMessageFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -96,9 +95,6 @@ Resources:
         - DynamoDBWritePolicy:
             TableName: !Ref MessagesTable
 
-  # -----------------------------
-  # Lambda for GET /messages/{message_id}
-  # -----------------------------
   GetMessageFunction:
     Type: AWS::Serverless::Function
     Properties:
