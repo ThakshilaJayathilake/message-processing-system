@@ -1,5 +1,5 @@
 from pydantic import ValidationError
-from src.models.message_model import Message
+from models.message_model import Message
 
 def validate_message_payload(payload: dict):
     try:

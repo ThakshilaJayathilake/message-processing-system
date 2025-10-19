@@ -1,10 +1,10 @@
 import os
 import json
 import logging
-from src.utils.validation_utils import validate_message_payload
-from src.services.s3_service import save_message_json
-from src.services.dynamodb_service import put_message_if_not_exists
-from src.utils.response_utils import make_response
+from utils.validation_utils import validate_message_payload
+from services.s3_service import save_message_json
+from services.dynamodb_service import put_message_if_not_exists
+from utils.response_utils import make_response
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

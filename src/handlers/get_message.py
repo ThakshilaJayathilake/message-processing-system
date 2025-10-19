@@ -1,9 +1,9 @@
 import os
 import json
 import logging
-from src.services.dynamodb_service import get_message
-from src.services.s3_service import s3_key_for
-from src.utils.response_utils import make_response
+from services.dynamodb_service import get_message
+from services.s3_service import s3_key_for
+from utils.response_utils import make_response
 import boto3
 
 logger = logging.getLogger()
