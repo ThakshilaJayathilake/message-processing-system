@@ -5,11 +5,19 @@ from services.dynamodb_service import get_message
 from services.s3_service import s3_key_for
 from utils.response_utils import make_response
 import boto3
+from decimal import Decimal
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 s3 = boto3.client("s3")
 BUCKET = os.environ.get("BUCKET_NAME")
+
+
+def serialize_decimal(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
 
 def lambda_handler(event, context):
     path_params = event.get("pathParameters") or {}
@@ -38,12 +46,13 @@ def lambda_handler(event, context):
         except Exception:
             logger.warning("Could not fetch raw payload from S3", exc_info=True)
 
-    resp = {
-        "company_id": item.get("company_id"),
-        "message_id": item.get("message_id"),
+    resp = json.loads(json.dumps({
+        "company_id": str(item.get("company_id")),
+        "message_id": str(item.get("message_id")),
         "metadata": item.get("metadata"),
         "data": item.get("data"),
         "s3_key": s3_key,
         "raw": raw
-    }
+    }, default=serialize_decimal))
+
     return make_response(200, resp)
