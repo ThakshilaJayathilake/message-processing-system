@@ -39,7 +39,7 @@ Resources:
   MessagesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${AWS::StackName}-${StageName}-messages'
+      BucketName: !Sub '${AWS::StackName}-${StageName}-messages-${AWS::AccountId}'
       VersioningConfiguration:
         Status: Enabled
 
@@ -49,7 +49,7 @@ Resources:
   MessagesTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${AWS::StackName}-${StageName}-messages'
+      TableName: !Sub '${AWS::StackName}-${StageName}-messages-${AWS::AccountId}'
       AttributeDefinitions:
         - AttributeName: company_id
           AttributeType: S
@@ -67,11 +67,6 @@ Resources:
     Properties:
       Name: !Sub 'MessageApi-${StageName}'
       StageName: !Ref StageName
-      DefinitionBody:
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: api/api.yml
       Cors:
         AllowMethods: "'OPTIONS,GET,POST'"
         AllowHeaders: "'Content-Type,Authorization'"
