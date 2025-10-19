@@ -1,6 +1,9 @@
 import os
 import json
 import logging
+from datetime import datetime
+from uuid import UUID
+from decimal import Decimal
 from utils.validation_utils import validate_message_payload
 from services.s3_service import save_message_json
 from services.dynamodb_service import put_message_if_not_exists
@@ -8,6 +11,22 @@ from utils.response_utils import make_response
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+
+def serialize_for_dynamodb(obj):
+    if isinstance(obj, dict):
+        return {k: serialize_for_dynamodb(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize_for_dynamodb(v) for v in obj]
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, UUID):
+        return str(obj)
+    elif isinstance(obj, float):
+        return Decimal(str(obj))
+    else:
+        return obj
+
 
 def lambda_handler(event, context):
     body_raw = event.get("body")
@@ -27,18 +46,19 @@ def lambda_handler(event, context):
     company_id = str(msg.metadata.company_id)
     message_id = str(msg.metadata.message_id)
 
+    metadata_dict = serialize_for_dynamodb(msg.metadata.dict())
+    data_dict = serialize_for_dynamodb(msg.data.dict())
+
     try:
         s3_key = save_message_json(payload)
     except Exception as exc:
         logger.exception("Failed to save message to S3")
-        # TODO push to DLQ
         return make_response(500, {"error": "s3_error", "message": str(exc)})
 
     try:
-        saved = put_message_if_not_exists(company_id, message_id, msg.metadata.dict(), msg.data.dict(), s3_key)
+        saved = put_message_if_not_exists(company_id, message_id, metadata_dict, data_dict, s3_key)
     except Exception as exc:
         logger.exception("Failed to save metadata to DynamoDB")
-        # TODO push to DLQ
         return make_response(500, {"error": "dynamodb_error", "message": str(exc)})
 
     if not saved:
