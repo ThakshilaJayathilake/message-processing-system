@@ -1,0 +1,4 @@
+boto3>=1.26
+pydantic>=1.10
+pytest>=7.0
+moto>=4.0
