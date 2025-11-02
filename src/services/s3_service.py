@@ -4,13 +4,13 @@ import boto3
 from botocore.exceptions import ClientError
 
 s3 = boto3.client("s3")
-BUCKET = os.environ.get("BUCKET_NAME")
 
 def s3_key_for(company_id: str, message_id: str) -> str:
     return f"{company_id}/{message_id}.json"
 
 def save_message_json(payload: dict) -> str:
-    if not BUCKET:
+    BUCKET_NAME = os.getenv("BUCKET_NAME") 
+    if not BUCKET_NAME:
         raise RuntimeError("BUCKET_NAME is not set")
     meta = payload.get("metadata", {})
     company_id = str(meta.get("company_id"))
@@ -18,7 +18,7 @@ def save_message_json(payload: dict) -> str:
     key = s3_key_for(company_id, message_id)
     body = json.dumps(payload).encode("utf-8")
     try:
-        s3.put_object(Bucket=BUCKET, Key=key, Body=body)
+        s3.put_object(Bucket=BUCKET_NAME, Key=key, Body=body)
         return key
     except ClientError as exc:
         raise

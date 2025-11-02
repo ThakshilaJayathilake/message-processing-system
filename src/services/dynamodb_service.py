@@ -5,12 +5,12 @@ from botocore.exceptions import ClientError
 from decimal import Decimal
 import json
 
-dynamodb = boto3.resource("dynamodb")
-TABLE_NAME = os.environ.get("DDB_TABLE")
 
 def _table():
+    TABLE_NAME = os.environ.get("DDB_TABLE")
     if not TABLE_NAME:
         raise RuntimeError("DDB_TABLE is not set")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     return dynamodb.Table(TABLE_NAME)
 
 def put_message_if_not_exists(company_id: str, message_id: str, metadata: dict, data: dict, s3_key: str) -> bool:

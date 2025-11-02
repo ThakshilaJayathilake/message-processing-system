@@ -46,8 +46,8 @@ def lambda_handler(event, context):
     company_id = str(msg.metadata.company_id)
     message_id = str(msg.metadata.message_id)
 
-    metadata_dict = serialize_for_dynamodb(msg.metadata.dict())
-    data_dict = serialize_for_dynamodb(msg.data.dict())
+    data_dict = serialize_for_dynamodb(msg.data.model_dump())
+    metadata_dict = serialize_for_dynamodb(msg.metadata.model_dump())
 
     try:
         s3_key = save_message_json(payload)
