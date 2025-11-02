@@ -33,3 +33,13 @@ warm_containers = "EAGER"
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
+
+[staging.deploy.parameters]
+stack_name = "message-processor"
+resolve_s3 = true
+s3_prefix = "message-processor"
+region = "ap-south-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "StageName=\"staging\""
+image_repositories = []
