@@ -1,45 +1,43 @@
 import os
-
 import boto3
 import pytest
 import requests
+import uuid
+import datetime
 
-"""
-Make sure env variable AWS_SAM_STACK_NAME exists with the name of the stack we are going to test. 
-"""
+class TestMessageProcessingAPI:
 
-
-class TestApiGateway:
-
-    @pytest.fixture()
+    @pytest.fixture(scope="session")
     def api_gateway_url(self):
-        """ Get the API Gateway URL from Cloudformation Stack outputs """
         stack_name = os.environ.get("AWS_SAM_STACK_NAME")
-
-        if stack_name is None:
-            raise ValueError('Please set the AWS_SAM_STACK_NAME environment variable to the name of your stack')
+        if not stack_name:
+            raise ValueError("Set AWS_SAM_STACK_NAME to your deployed stack name")
 
         client = boto3.client("cloudformation")
+        response = client.describe_stacks(StackName=stack_name)
+        outputs = response["Stacks"][0]["Outputs"]
+        api_output = next(o for o in outputs if o["OutputKey"] == "ApiUrl")
+        return api_output["OutputValue"]
 
-        try:
-            response = client.describe_stacks(StackName=stack_name)
-        except Exception as e:
-            raise Exception(
-                f"Cannot find stack {stack_name} \n" f'Please make sure a stack with the name "{stack_name}" exists'
-            ) from e
+    def test_post_and_get_message(self, api_gateway_url):
+        post_url = f"{api_gateway_url}messages"
+        payload = {
+            "metadata": {
+                "company_id": "e0721e56-fb09-4273-ae74-7bcbc92d43eb",
+                "message_id": str(uuid.uuid4()),
+                "message_time": datetime.datetime.utcnow().isoformat() + "Z"
+            },
+            "data": {
+                "order_id": str(uuid.uuid4()),
+                "order_time": datetime.datetime.utcnow().isoformat() + "Z",
+                "order_amount": 20.5
+            }
+        }
 
-        stacks = response["Stacks"]
-        stack_outputs = stacks[0]["Outputs"]
-        api_outputs = [output for output in stack_outputs if output["OutputKey"] == "HelloWorldApi"]
+        post_resp = requests.post(post_url, json=payload)
+        assert post_resp.status_code in [200, 201]
 
-        if not api_outputs:
-            raise KeyError(f"HelloWorldAPI not found in stack {stack_name}")
-
-        return api_outputs[0]["OutputValue"]  # Extract url from stack outputs
-
-    def test_api_gateway(self, api_gateway_url):
-        """ Call the API Gateway endpoint and check the response """
-        response = requests.get(api_gateway_url)
-
-        assert response.status_code == 200
-        assert response.json() == {"message": "hello world"}
+        get_url = f"{api_gateway_url}messages/{payload['metadata']['message_id']}?company_id={payload['metadata']['company_id']}"
+        get_resp = requests.get(get_url)
+        assert get_resp.status_code == 200
+        assert get_resp.json()["metadata"]["company_id"] == payload["metadata"]["company_id"]
