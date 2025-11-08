@@ -1,0 +1,41 @@
+name: Deploy to Production Environment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install AWS SAM CLI
+        run: |
+          pip install aws-sam-cli
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: us-east-1
+
+      - name: Deploy to Prod using SAM
+        run: |
+          sam deploy \
+            --template-file template.yaml \
+            --stack-name message-processing-prod \
+            --capabilities CAPABILITY_IAM \
+            --region us-east-1 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --s3-bucket your-prod-artifacts-bucket
