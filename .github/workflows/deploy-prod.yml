@@ -37,5 +37,4 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --region ap-south-1 \
             --no-confirm-changeset \
-            --no-fail-on-empty-changeset \
-            --s3-bucket your-prod-artifacts-bucket
+            --no-fail-on-empty-changeset
