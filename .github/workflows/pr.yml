@@ -2,7 +2,7 @@ name: Pull Request Checks (CI)
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
 
 jobs:
   ci:
