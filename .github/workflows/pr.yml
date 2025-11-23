@@ -2,7 +2,7 @@ name: Pull Request Checks (CI)
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
 
 jobs:
   ci:
@@ -25,7 +25,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          pytest --maxfail=1 --disable-warnings --cov=src --cov-report=term-missing
+          pytest tests/unit --maxfail=1 --disable-warnings --cov=src --cov-report=term-missing
 
       - name: Validate SAM Template
         run: sam validate --template template.yaml
